@@ -1,25 +1,28 @@
 #include <Arduino_FreeRTOS.h>
 #include <Stepper.h>
-#include <Wire.h>
 
-#define STEP_PIN 4
-#define DIR_PIN 12
-#define ENV_PIN 6
+#define DIR_PIN 11
+#define STEP_PIN 12
+#define ENV_PIN 13
 #define MAX_STEPS 6000
 
-#define underMotorOneCycle 2048
-#define IN1 22
-#define IN2 23
-#define IN3 24
-#define IN4 25
+#define M1 22
+#define M2 24
+#define M3 26
+
+#define underMotorOneCycle 60
+#define IN1 4
+#define IN2 5
+#define IN3 6
+#define IN4 7
 
 Stepper stepper(underMotorOneCycle, IN1, IN2, IN3, IN4);
 
 int maxSpeedDelay = 2000;
-int minSpeedDelay = 500;
+int minSpeedDelay = 100;
 int accelerationStep = 5;
 int currentSpeedDelay = maxSpeedDelay;
-int targetSpeedDelay = 500;
+int targetSpeedDelay = 100;
 int steps = 0;
 bool direction = HIGH;
 bool Enable = LOW;
@@ -40,10 +43,7 @@ void accelerate(int targetSpeed){
   if(currentSpeedDelay < targetSpeed) {
     currentSpeedDelay += accelerationStep;
   }
-
 }
-
- 
 
 void setup() {
   // put your setup code here, to run once:
@@ -58,34 +58,21 @@ void setup() {
   xTaskCreate(Task1, "Task1", 2048, NULL, 2, NULL);
   xTaskCreate(Task2, "Task2", 2048, NULL, 1, NULL);
 
-  Wire.begin();
+  pinMode(M1,OUTPUT);
+  pinMode(M2,OUTPUT);
+  pinMode(M3,OUTPUT);
+  digitalWrite(M1,HIGH);
+  digitalWrite(M2,LOW);
+  digitalWrite(M3,LOW);
 }
 
 static void Task1(void* pvParameters){
   while(true) {
-    /**
-    if(isReseting == false){
+      if(isReseting == false){
       Serial.print(currentSpeedDelay);
       Serial.println(steps);
       vTaskDelay(100);
     } 
-    **/
-    Wire.beginTransmission(1);
-    Wire.write(currentSpeedDelay);
-    Wire.write(steps);
-    Wire.endTransmission();
-
-    vTaskDelay(50);
-
-    Wire.requestFrom(1,4);
-    while(Wire.available()){
-      targetSpeedDelay = Wire.read();
-      int dir = Wire.read();
-      if (dir == 1) {
-        direction = !direction;
-        digitalWrite(DIR_PIN,direction);
-      }
-    }
   }
 }
 
@@ -107,7 +94,10 @@ static void Task2(void* pvParameters){
         digitalWrite(DIR_PIN,direction);
       }
     }
-    
+    else {
+      stepper.step(underMotorOneCycle);
+      vTaskDelay(50);
+    }
   }
 }
 
